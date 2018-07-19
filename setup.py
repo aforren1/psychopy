@@ -31,7 +31,7 @@ required = ['requests[security]',
             'xlrd', 'openpyxl',  # MS Excel
             'pyserial', 'pyparallel',
             'pyyaml', 'gevent', 'msgpack-python', 'psutil', 'tables', 'zmq',
-            'moviepy']
+            'moviepy', 'arabic_reshaper']
 
 # `opencv` package should be installed via conda instead
 # cf. https://github.com/ContinuumIO/anaconda-issues/issues/1554
