@@ -10,6 +10,7 @@
 from __future__ import absolute_import, print_function
 
 from psychopy import logging
+import os
 import sys
 try:
     import ctypes
@@ -64,18 +65,18 @@ def rush(value=True, realtime=False):
     """
     if importCtypesFailed:
         return False
-
+    exe_path = os.path.realpath(sys.executable)
     if value:  # set to RR with max priority
         schedParams = _SchedParams()
         schedParams.sched_priority = c.sched_get_priority_max(SCHED_RR)
         err = c.sched_setscheduler(0, SCHED_RR, ctypes.byref(schedParams))
         if err == -1:  # returns 0 if OK
-            logging.warning(warnMax % (sys.executable, sys.executable))
+            logging.warning(warnMax % (exe_path, exe_path))
     else:  # set to RR with normal priority
         schedParams = _SchedParams()
         schedParams.sched_priority = c.sched_get_priority_min(SCHED_NORMAL)
         err = c.sched_setscheduler(0, SCHED_NORMAL, ctypes.byref(schedParams))
         if err == -1:  # returns 0 if OK
-            logging.warning(warnNormal % sys.executable)
+            logging.warning(warnNormal % exe_path)
 
     return True
