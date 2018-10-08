@@ -97,7 +97,8 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
                  autoLog=None,
                  autoDraw=False,
                  color=None,
-                 colorSpace=None):
+                 colorSpace=None,
+                 lineStipple=0xffff): # 0x0000
         """ """  # all doc is in the attributes
         # what local vars are defined (these are the init params) for use by
         # __repr__
@@ -115,6 +116,7 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
         self.closeShape = closeShape
         self.lineWidth = lineWidth
         self.interpolate = interpolate
+        self.lineStipple = lineStipple
 
         # Color stuff
         self.useShaders = False  # don't need to combine textures with colors
@@ -364,6 +366,8 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
                 GL.glColor4f(fillRGB[0], fillRGB[1], fillRGB[2], self.opacity)
                 GL.glDrawArrays(GL.GL_POLYGON, 0, nVerts)
         if self.lineRGB is not None and self.lineWidth != 0.0:
+            GL.glEnable(GL.GL_LINE_STIPPLE)
+            GL.glLineStipple(1, self.lineStipple)
             lineRGB = self._getDesiredRGB(
                 self.lineRGB, self.lineColorSpace, self.contrast)
             # then draw
@@ -373,6 +377,7 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
                 GL.glDrawArrays(GL.GL_LINE_LOOP, 0, nVerts)
             else:
                 GL.glDrawArrays(GL.GL_LINE_STRIP, 0, nVerts)
+            GL.glDisable(GL.GL_LINE_STIPPLE)
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
         if win._haveShaders:
             GL.glUseProgram(0)
@@ -433,7 +438,8 @@ class ShapeStim(BaseShapeStim):
                  interpolate=True,
                  name=None,
                  autoLog=None,
-                 autoDraw=False):
+                 autoDraw=False,
+                 lineStipple=0xffff):
         """
         """
         # what local vars are defined (init params, for use by __repr__)
@@ -458,7 +464,8 @@ class ShapeStim(BaseShapeStim):
                                         interpolate=interpolate,
                                         name=name,
                                         autoLog=False,
-                                        autoDraw=autoDraw)
+                                        autoDraw=autoDraw,
+                                        lineStipple=lineStipple)
 
         self.closeShape = closeShape
         self.windingRule = windingRule
@@ -569,13 +576,13 @@ class ShapeStim(BaseShapeStim):
         GL.glActiveTexture(GL.GL_TEXTURE1)
         GL.glEnable(GL.GL_TEXTURE_2D)
         GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-
         if self.interpolate:
             GL.glEnable(GL.GL_LINE_SMOOTH)
             GL.glEnable(GL.GL_MULTISAMPLE)
         else:
             GL.glDisable(GL.GL_LINE_SMOOTH)
             GL.glDisable(GL.GL_MULTISAMPLE)
+        GL.glEnable(GL.GL_LINE_STIPPLE)
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
 
         # fill interior triangles if there are any
@@ -590,6 +597,7 @@ class ShapeStim(BaseShapeStim):
 
         # draw the border (= a line connecting the non-tesselated vertices)
         if self.lineRGB is not None and self.lineWidth:
+            GL.glLineStipple(1, self.lineStipple)
             GL.glVertexPointer(2, GL.GL_DOUBLE, 0, self._borderPix.ctypes)
             lineRGB = self._getDesiredRGB(self.lineRGB, self.lineColorSpace,
                                           self.contrast)
@@ -600,8 +608,9 @@ class ShapeStim(BaseShapeStim):
             else:
                 gl_line = GL.GL_LINE_STRIP
             GL.glDrawArrays(gl_line, 0, self._borderPix.shape[0])
-
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+        GL.glDisable(GL.GL_LINE_STIPPLE)
+
         if win._haveShaders:
             GL.glUseProgram(0)
         if not keepMatrix:
