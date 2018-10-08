@@ -354,6 +354,7 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
             GL.glDisable(GL.GL_LINE_SMOOTH)
             GL.glDisable(GL.GL_MULTISAMPLE)
         # .data_as(ctypes.POINTER(ctypes.c_float)))
+        GL.glEnable(GL.GL_LINE_STIPPLE)
         GL.glVertexPointer(2, GL.GL_DOUBLE, 0, vertsPix.ctypes)
 
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
@@ -366,7 +367,6 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
                 GL.glColor4f(fillRGB[0], fillRGB[1], fillRGB[2], self.opacity)
                 GL.glDrawArrays(GL.GL_POLYGON, 0, nVerts)
         if self.lineRGB is not None and self.lineWidth != 0.0:
-            GL.glEnable(GL.GL_LINE_STIPPLE)
             GL.glLineStipple(1, self.lineStipple)
             lineRGB = self._getDesiredRGB(
                 self.lineRGB, self.lineColorSpace, self.contrast)
@@ -377,7 +377,7 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
                 GL.glDrawArrays(GL.GL_LINE_LOOP, 0, nVerts)
             else:
                 GL.glDrawArrays(GL.GL_LINE_STRIP, 0, nVerts)
-            GL.glDisable(GL.GL_LINE_STIPPLE)
+        GL.glDisable(GL.GL_LINE_STIPPLE)
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
         if win._haveShaders:
             GL.glUseProgram(0)
