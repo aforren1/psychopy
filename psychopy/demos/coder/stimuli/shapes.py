@@ -16,14 +16,14 @@ win = visual.Window(size=(500, 400), units='height')
 
 # some shapes:
 arrowVert = [(-0.4,0.05),(-0.4,-0.05),(-.2,-0.05),(-.2,-0.1),(0,0),(-.2,0.1),(-.2,0.05)]
-arrow = ShapeStim(win, vertices=arrowVert, fillColor='darkred', size=.5, lineColor='red')
+arrow = ShapeStim(win, vertices=arrowVert, fillColor='darkred', size=.5, lineColor='red', lineStipple=0x0110)
 
 star7Vert = [(0.0,0.5),(0.09,0.18),(0.39,0.31),(0.19,0.04),(0.49,-0.11),(0.16,-0.12),(0.22,-0.45),(0.0,-0.2),(-0.22,-0.45),(-0.16,-0.12),(-0.49,-0.11),(-0.19,0.04),(-0.39,0.31),(-0.09,0.18)]
-star7 = ShapeStim(win, vertices=star7Vert, fillColor='green', lineWidth=2, lineColor='white')
+star7 = ShapeStim(win, vertices=star7Vert, fillColor='green', lineWidth=2, lineColor='white', lineStipple=0x10ff)
 
 # self-crossings are fine:
 selfxVert = [(0, 0), (0, .2), (.2, 0), (.2, .2)]
-selfx = ShapeStim(win, vertices=selfxVert, fillColor='darkmagenta', lineColor='yellow', opacity=.6, pos=(.2, -.3), size=2)
+selfx = ShapeStim(win, vertices=selfxVert, fillColor='darkmagenta', lineColor='yellow', opacity=.6, pos=(.2, -.3), size=2, lineStipple=0x00ff)
 
 # `thing` has a fake hole and discontinuity (as the border will reveal):
 thingVert = [(0,0),(0,.4),(.4,.4),(.4,0),(.1,0),(.1,.1),(.3,.1),(.3,.3),(.1,.3),(.1,0),(0,0),(.1,-.1),(.3,-.1),(.3,-.3),(.1,-.3),(.1,-.1)]
@@ -45,7 +45,7 @@ while not event.getKeys():
     donut.draw()
     coast.draw()
     star7.setOri(1, '-')  # rotate
-    star7.setSize(star7.ori % 360 / 360)  # shrink
+    #star7.setSize(star7.ori % 360 / 360)  # shrink
     star7.draw()
     thing.setOri(-star7.ori / 7)  # rotate slowly
     thing.draw()
