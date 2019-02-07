@@ -338,10 +338,10 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
             GL.glPushMatrix()  # push before drawing, pop after
             win.setScale('pix')
         # load Null textures into multitexteureARB - or they modulate glColor
-        GL.glActiveTexture(GL.GL_TEXTURE0)
+        GL.glActiveTexture(GL.GL_TEXTURE1)
         GL.glEnable(GL.GL_TEXTURE_2D)
         GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-        GL.glActiveTexture(GL.GL_TEXTURE1)
+        GL.glActiveTexture(GL.GL_TEXTURE0)
         GL.glEnable(GL.GL_TEXTURE_2D)
         GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 
@@ -374,6 +374,10 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
             else:
                 GL.glDrawArrays(GL.GL_LINE_STRIP, 0, nVerts)
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+        GL.glDisable(GL.GL_TEXTURE_2D)
+        if self.interpolate:
+            GL.glDisable(GL.GL_LINE_SMOOTH)
+            GL.glDisable(GL.GL_MULTISAMPLE)
         if win._haveShaders:
             GL.glUseProgram(0)
         if not keepMatrix:
