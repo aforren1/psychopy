@@ -395,15 +395,16 @@ class RadialStim(GratingStim):
             # assign vertex array
             GL.glVertexPointer(2, GL.GL_DOUBLE, 0, self.verticesPix.ctypes)
 
+            # and mask
+            GL.glActiveTexture(GL.GL_TEXTURE1)
+            GL.glBindTexture(GL.GL_TEXTURE_1D, self._maskID)
+            GL.glEnable(GL.GL_TEXTURE_1D)
+
             # then bind main texture
             GL.glActiveTexture(GL.GL_TEXTURE0)
             GL.glBindTexture(GL.GL_TEXTURE_2D, self._texID)
             GL.glEnable(GL.GL_TEXTURE_2D)
-            # and mask
-            GL.glActiveTexture(GL.GL_TEXTURE1)
-            GL.glBindTexture(GL.GL_TEXTURE_1D, self._maskID)
-            GL.glDisable(GL.GL_TEXTURE_2D)
-            GL.glEnable(GL.GL_TEXTURE_1D)
+
 
             # setup the shaderprogram
             prog = self.win._progSignedTexMask1D
@@ -431,7 +432,8 @@ class RadialStim(GratingStim):
 
             # unbind the textures
             GL.glClientActiveTexture(GL.GL_TEXTURE1)
-            GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+            GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
+            GL.glDisable(GL.GL_TEXTURE_1D)
             # main texture
             GL.glClientActiveTexture(GL.GL_TEXTURE0)
             GL.glBindTexture(GL.GL_TEXTURE_2D, 0)

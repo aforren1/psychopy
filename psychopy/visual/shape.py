@@ -338,12 +338,12 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
             GL.glPushMatrix()  # push before drawing, pop after
             win.setScale('pix')
         # load Null textures into multitexteureARB - or they modulate glColor
-        GL.glActiveTexture(GL.GL_TEXTURE0)
-        GL.glEnable(GL.GL_TEXTURE_2D)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
         GL.glActiveTexture(GL.GL_TEXTURE1)
         GL.glEnable(GL.GL_TEXTURE_2D)
         GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        GL.glActiveTexture(GL.GL_TEXTURE0)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        GL.glDisable(GL.GL_TEXTURE_2D)
 
         if self.interpolate:
             GL.glEnable(GL.GL_LINE_SMOOTH)
@@ -374,6 +374,10 @@ class BaseShapeStim(BaseVisualStim, ColorMixin, ContainerMixin):
             else:
                 GL.glDrawArrays(GL.GL_LINE_STRIP, 0, nVerts)
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+
+        if self.interpolate:
+            GL.glDisable(GL.GL_LINE_SMOOTH)
+            GL.glDisable(GL.GL_MULTISAMPLE)
         if win._haveShaders:
             GL.glUseProgram(0)
         if not keepMatrix:
@@ -563,12 +567,12 @@ class ShapeStim(BaseShapeStim):
             GL.glUseProgram(_prog)
 
         # load Null textures into multitexteureARB - or they modulate glColor
-        GL.glActiveTexture(GL.GL_TEXTURE0)
-        GL.glEnable(GL.GL_TEXTURE_2D)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
         GL.glActiveTexture(GL.GL_TEXTURE1)
         GL.glEnable(GL.GL_TEXTURE_2D)
         GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        GL.glActiveTexture(GL.GL_TEXTURE0)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        GL.glDisable(GL.GL_TEXTURE_2D)
 
         if self.interpolate:
             GL.glEnable(GL.GL_LINE_SMOOTH)
@@ -602,6 +606,9 @@ class ShapeStim(BaseShapeStim):
             GL.glDrawArrays(gl_line, 0, self._borderPix.shape[0])
 
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+        if self.interpolate:
+            GL.glDisable(GL.GL_LINE_SMOOTH)
+            GL.glDisable(GL.GL_MULTISAMPLE)
         if win._haveShaders:
             GL.glUseProgram(0)
         if not keepMatrix:
