@@ -10,6 +10,7 @@ See demo_mouse.py and i{demo_joystick.py} for examples
 # Distributed under the terms of the GNU General Public License (GPL).
 
 # 01/2011 modified by Dave Britton to get mouse event timing
+import line_profiler
 
 import sys
 import string
@@ -33,6 +34,8 @@ except ImportError:
     havePyglet = False
 try:
     import glfw
+    if not glfw.init():
+        raise ImportError
     haveGLFW = True
 except ImportError:
     haveGLFW = False
@@ -372,6 +375,7 @@ def modifiers_dict(modifiers):
         'MOD_SCROLLLOCK'
     ]}
 
+@line_profiler.profile
 def getKeys(keyList=None, modifiers=False, timeStamped=False):
     """Returns a list of keys that were pressed.
 
@@ -407,11 +411,12 @@ def getKeys(keyList=None, modifiers=False, timeStamped=False):
         for evts in evt.get(locals.KEYDOWN):
             # pygame has no keytimes
             keys.append((pygame.key.name(evts.key), 0))
-    elif havePyglet:
+    if havePyglet:
         # for each (pyglet) window, dispatch its events before checking event
         # buffer
         windowSystem = 'pyglet'
-        for win in _default_display_.get_windows():
+        #for win in _default_display_.get_windows():
+        for win in pyglet.app.windows:
             try:
                 win.dispatch_events()  # pump events on pyglet windows
             except ValueError as e:  # pragma: no cover
@@ -426,7 +431,8 @@ def getKeys(keyList=None, modifiers=False, timeStamped=False):
             keys = _keyBuffer
             # _keyBuffer = []  # DO /NOT/ CLEAR THE KEY BUFFER ENTIRELY
 
-    elif haveGLFW:
+    if haveGLFW:
+        glfw.poll_events()
         windowSystem = 'glfw'
         # 'poll_events' is called when a window is flipped, all the callbacks
         # populate the buffer
@@ -481,7 +487,7 @@ def getKeys(keyList=None, modifiers=False, timeStamped=False):
                          "modifiers={}"
                         .format(timeStamped, windowSystem, modifiers))
 
-
+@line_profiler.profile
 def waitKeys(maxWait=float('inf'), keyList=None, modifiers=False,
              timeStamped=False, clearEvents=True):
     """Same as `~psychopy.event.getKeys`, but halts everything
@@ -534,6 +540,9 @@ def waitKeys(maxWait=float('inf'), keyList=None, modifiers=False,
         if havePyglet:
             for win in _default_display_.get_windows():
                 win.dispatch_events()
+        
+        if haveGLFW:
+            glfw.poll_events()
 
         # Get keypresses and return if anything is pressed.
         keys = getKeys(keyList=keyList, modifiers=modifiers,
@@ -892,8 +901,12 @@ class Mouse:
             # for each (pyglet) window, dispatch its events before checking
             # event buffer
 
-            for win in _default_display_.get_windows():
-                win.dispatch_events()  # pump events on pyglet windows
+            if havePyglet:
+                for win in _default_display_.get_windows():
+                    win.dispatch_events()  # pump events on pyglet windows
+            
+            if haveGLFW:
+                glfw.poll_events()
 
             # else:
             if not getTime:
@@ -997,8 +1010,12 @@ def clearEvents(eventType=None):
     if not havePygame or not display.get_init():  # pyglet
         # For each window, dispatch its events before
         # checking event buffer.
-        for win in _default_display_.get_windows():
-            win.dispatch_events()  # pump events on pyglet windows
+        if havePyglet:
+            for win in _default_display_.get_windows():
+                win.dispatch_events()  # pump events on pyglet windows
+        
+        if haveGLFW:
+            glfw.poll_events()
 
         if eventType == 'mouse':
             pass
@@ -1220,6 +1237,7 @@ def _onGLFWKey(*args, **kwargs):
 
     :return:
     """
+    print('herr')
     keyTime = psychopy.core.getTime()  # get timestamp
 
     # TODO - support for key emulation

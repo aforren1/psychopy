@@ -29,6 +29,7 @@ from .. import globalVars
 from ._base import BaseBackend
 
 import pyglet
+pyglet.options['debug_gl'] = False
 import pyglet.window as pyglet_window
 import pyglet.window.mouse as pyglet_mouse
 # Ensure setting pyglet.options['debug_gl'] to False is done prior to any
@@ -158,6 +159,8 @@ class PygletBackend(BaseBackend):
             win.stencilBits = int(backendConf.get('stencilBits', 8))
         else:
             win.stencilBits = 0
+        
+        display_num = backendConf.get('display', '0')
 
         # multisampling
         sample_buffers = 0
@@ -180,24 +183,40 @@ class PygletBackend(BaseBackend):
                 win.multiSample = False
 
         if platform.system() == 'Linux':
-            display = pyglet.canvas.Display()
+            from pyglet.canvas.xlib import NoSuchDisplayException
+            try:
+                display = pyglet.canvas.Display(name=f':{display_num}', x_screen=win.screen)
+            except NoSuchDisplayException:
+                # we get the same exception if either the display or screen are wrong--
+                # try again on screen 0
+                logging.warn("Either the XDisplay or XScreen is wrong, "
+                             "trying again on XScreen = 0.")
+                display = pyglet.canvas.Display(name=f':{display_num}', x_screen=0)
+
+            #display = _default_display_
             allScrs = display.get_screens()
         else:
             if pyglet.version < '1.4':
-                allScrs = _default_display_.get_screens()
+                allScrs = pyglet.window.get_platform().get_default_display()
             else:
                 allScrs = _default_display_.get_screens()
 
-        # Screen (from Exp Settings) is 1-indexed,
-        # so the second screen is Screen 1
-        if len(allScrs) < int(win.screen) + 1:
-            logging.warn("Requested an unavailable screen number - "
-                         "using first available.")
+        if platform.system() == 'Linux':
+            # unless user has xinerama, should only be one x-screen?
             thisScreen = allScrs[0]
+            logging.info('configured pyglet screen %i' % win.screen)
         else:
-            thisScreen = allScrs[win.screen]
-            if win.autoLog:
-                logging.info('configured pyglet screen %i' % win.screen)
+            # Screen (from Exp Settings) is 1-indexed,
+            # so the second screen is Screen 1
+            if len(allScrs) < int(win.screen) + 1:
+                logging.warn("Requested an unavailable screen number - "
+                            "using first available.")
+                thisScreen = allScrs[0]
+                win.screen = 0
+            else:
+                thisScreen = allScrs[win.screen]
+                if win.autoLog:
+                    logging.info('configured pyglet screen %i' % win.screen)
 
         # configure the window context
         config = GL.Config(
@@ -247,7 +266,7 @@ class PygletBackend(BaseBackend):
             self.winHandle = pyglet.window.Window(
                 width=w, height=h,
                 caption="PsychoPy",
-                fullscreen=self._isFullScr,
+                fullscreen=win._isFullScr,
                 config=config,
                 screen=thisScreen,
                 style=style)
