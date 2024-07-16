@@ -15,6 +15,7 @@ some more added:
     - adds additional options to use <b>bold<\b>, <i>italic<\i>, <c=#ffffff>color</c> tags in text
 
 """
+import line_profiler
 from ast import literal_eval
 
 import numpy as np
@@ -235,6 +236,8 @@ class TextBox2(BaseVisualStim, DraggingMixin, ContainerMixin, ColorMixin):
         self.alignment = alignment
 
         # box border and fill
+        self._palette = {True: {'lineColor': None, 'fillColor': None, 'lineWidth': None}, 
+                         False: {'lineColor': None, 'fillColor': None, 'lineWidth': None}}
         self.borderWidth = borderWidth
         self.borderColor = borderColor
         self.fillColor = fillColor
@@ -317,18 +320,6 @@ class TextBox2(BaseVisualStim, DraggingMixin, ContainerMixin, ColorMixin):
     @property
     def palette(self):
         """Describes the current visual properties of the TextBox in a dict"""
-        self._palette = {
-            False: {
-                'lineColor': self._borderColor,
-                'lineWidth': self.borderWidth,
-                'fillColor': self._fillColor
-            },
-            True: {
-                'lineColor': self._borderColor-0.1,
-                'lineWidth': self.borderWidth+1,
-                'fillColor': self._fillColor+0.1
-            }
-        }
         return self._palette[self.hasFocus]
 
     @palette.setter
@@ -348,6 +339,38 @@ class TextBox2(BaseVisualStim, DraggingMixin, ContainerMixin, ColorMixin):
     @pallette.setter
     def pallette(self, value):
         self.palette = value
+
+    @property
+    def borderColor(self):
+        return ColorMixin.borderColor.fget(self)
+
+    @ColorMixin.borderColor.setter
+    @line_profiler.profile
+    def borderColor(self, value):
+        ColorMixin.borderColor.fset(self, value)
+        self._palette[True]['lineColor'] = self.borderColor-0.1
+        self._palette[False]['lineColor'] = self.borderColor
+
+    @property
+    def fillColor(self):
+        return ColorMixin.fillColor.fget(self)
+
+    @fillColor.setter
+    @line_profiler.profile
+    def fillColor(self, value):
+        ColorMixin.fillColor.fset(self, value)
+        self._palette[True]['fillColor'] = self.fillColor+0.1
+        self._palette[False]['fillColor'] = self.fillColor
+    
+    @property
+    def borderWidth(self):
+        return self._borderWidth
+
+    @borderWidth.setter
+    def borderWidth(self, value):
+        self._borderWidth = value
+        self._palette[True]['lineWidth'] = self.borderWidth + 1
+        self._palette[False]['lineWidth'] = self.borderWidth
 
     @property
     def foreColor(self):
@@ -1210,6 +1233,7 @@ class TextBox2(BaseVisualStim, DraggingMixin, ContainerMixin, ColorMixin):
         if lastOri != value:
             self._layout()
 
+    @line_profiler.profile
     def draw(self):
         """Draw the text to the back buffer"""
         # Border width

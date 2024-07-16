@@ -20,7 +20,7 @@ import psychopy.tools.colorspacetools as ct
 from psychopy.tools.mathtools import infrange
 import numpy as np
 
-
+import line_profiler
 # Dict of examples of Psychopy Red at 12% opacity in different formats
 colorExamples = {
     'named': 'crimson',
@@ -193,6 +193,9 @@ colorNames = {
 for key in colorNames:
     colorNames[key] = np.array(colorNames[key])
 
+hexMatch = np.vectorize(
+    lambda col: bool(colorSpaces['hex'].fullmatch(str(col))))  # match regex against hex
+
 # Dict of regexpressions/ranges for different formats
 colorSpaces = {
     'named': re.compile("|".join(list(colorNames))), # A named colour space
@@ -239,6 +242,9 @@ nonAlphaSpaces = list(colorSpaces)
 for val in alphaSpaces:
     nonAlphaSpaces.remove(val)
 
+namedMatch = np.vectorize(
+    lambda col: bool(colorSpaces['named'].fullmatch(
+        str(col).lower())))  # match regex against named
 
 class Color:
     """A class to store color details, knows what colour space it's in and can
@@ -257,12 +263,14 @@ class Color:
         Cone matrix for colorspaces which require it. Must be a 3x3 array.
 
     """
-    def __init__(self, color=None, space=None, contrast=None, conematrix=None):
+    def __init__(self, color=None, space=None, contrast=None, 
+                 conematrix=None, initial_validate=True):
         self._cache = {}
         self._renderCache = {}
         self.contrast = contrast if isinstance(contrast, (int, float)) else 1
-        self.alpha = 1
+        self._alpha = np.array([1])
         self.valid = False
+        self._validate = initial_validate
         self.conematrix = conematrix
 
         # defined here but set later
@@ -270,11 +278,14 @@ class Color:
         self._requestedSpace = None
 
         self.set(color=color, space=space)
+        self._validate = True
 
     def validate(self, color, space=None):
         """
         Check that a color value is valid in the given space, or all spaces if space==None.
         """
+        if not self._validate:
+            return color, space
         # Treat None as a named color
         if color is None:
             color = "none"
@@ -292,15 +303,10 @@ class Color:
             for i in range((len(color[:, 0]))):
                 color[i, 0] = color[i, 0].replace("\"", "").replace("'", "")
             # If colors are all named, override color space
-            namedMatch = np.vectorize(
-                lambda col: bool(colorSpaces['named'].fullmatch(
-                    str(col).lower())))  # match regex against named
             if all(namedMatch(color[:, 0])):
                 space = 'named'
             # If colors are all hex, override color space
-            hexMatch = np.vectorize(
-                lambda col: bool(colorSpaces['hex'].fullmatch(str(col))))  # match regex against hex
-            if all(hexMatch(color[:, 0])):
+            elif all(hexMatch(color[:, 0])):
                 space = 'hex'
             # If color is a string but does not match any string space, it's invalid
             if space not in strSpaces:
@@ -347,6 +353,7 @@ class Color:
 
         return color, space
 
+    @line_profiler.profile
     def set(self, color=None, space=None):
         """Set the colour of this object - essentially the same as what happens
         on creation, but without having to initialise a new object.
@@ -357,7 +364,10 @@ class Color:
             self._requestedSpace = color._requestedSpace
             self.valid = color.valid
             if color.valid:
-                self.rgba = color.rgba
+                self._validate = False
+                self.rgb = color.rgb
+                self._alpha = color.alpha
+                self._validate = True
             return
         # Store requested colour and space (or defaults, if none given)
         self._requested = color
@@ -367,11 +377,14 @@ class Color:
         # Convert to lingua franca
         if space in colorSpaces:
             self.valid = True
+            self._validate = False
             setattr(self, space, color)
+            self._validate = True
         else:
             self.valid = False
             raise ValueError("{} is not a valid color space.".format(space))
 
+    @line_profiler.profile
     def render(self, space='rgb'):
         """Apply contrast to the base color value and return the adjusted color
         value.
@@ -389,7 +402,8 @@ class Color:
         adj = np.clip(self.rgb * contrast, -1, 1)
         buffer = self.copy()
         buffer.rgb = adj
-        return getattr(buffer, space)
+        self._renderCache[space] = getattr(buffer, space)
+        return self._renderCache[space]
 
     def __repr__(self):
         """If colour is printed, it will display its class and value.
@@ -439,6 +453,7 @@ class Color:
     # Operators
     #
 
+    @line_profiler.profile
     def __add__(self, other):
         buffer = self.copy()
         # If target is a list or tuple, convert it to an array
@@ -457,6 +472,7 @@ class Color:
                 buffer.rgba = self.rgba + other.rgba
         return buffer
 
+    @line_profiler.profile
     def __sub__(self, other):
         buffer = self.copy()
         # If target is a list or tuple, convert it to an array
@@ -486,10 +502,14 @@ class Color:
     def __copy__(self):
         return self.__deepcopy__()
 
+    @line_profiler.profile
     def __deepcopy__(self):
         dupe = self.__class__(
-            self._requested, self._requestedSpace, self.contrast)
-        dupe.rgba = self.rgba
+            self._requested, self._requestedSpace, self.contrast, initial_validate=False)
+        dupe._validate = False
+        dupe.rgb = self.rgb
+        dupe._alpha = self.alpha
+        dupe._validate = True
         dupe.valid = self.valid
         return dupe
 
@@ -823,16 +843,16 @@ class Color:
             # Handle arrays
             for row in color:
                 row = str(np.reshape(row, ())) # Enforce str
-                if str(row).lower() in colorNames:
-                    self.rgb = colorNames[str(row).lower()]
+                if row.lower() in colorNames:
+                    self.rgb = colorNames[row.lower()]
                 if row.lower() == 'none':
-                    self.alpha = 0
+                    self._alpha = np.array([0])
         else:
             color = str(np.reshape(color, ())) # Enforce str
             if color.lower() in colorNames:
-                self.rgb = colorNames[str(color).lower()]
+                self.rgb = colorNames[color.lower()]
             if color.lower() == 'none':
-                self.alpha = 0
+                self._alpha = np.array([0])
         # Clear outdated values from cache
         self._cache = {'named': color}
         self._renderCache = {}
